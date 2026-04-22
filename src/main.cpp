@@ -5,6 +5,7 @@
 #include "display.h"
 #include "touch.h"
 #include "motor_control.h"
+#include "power_management.h"
 
 // Global state instance
 GlobalState g_state;
@@ -39,6 +40,10 @@ void setup() {
     g_pidController.setOutputLimits(0.0f, 100.0f);
     g_pidController.reset();
     
+    // Setup power management (check wake-up reason)
+    Serial.println("Setting up power management...");
+    setupPowerManagement();
+    
     // Setup hardware
     Serial.println("Setting up display...");
     setupDisplay();
@@ -62,6 +67,7 @@ void setup() {
     Serial.println("- Mode: Toggle between Fixed Power and PID");
     Serial.println("- Power +/-: Adjust target power");
     Serial.println("- RPM +/-: Adjust target RPM (PID mode)");
+    Serial.println("- SLEEP: Enter deep sleep (wake with BOOT button)");
     Serial.println("===================================");
 }
 

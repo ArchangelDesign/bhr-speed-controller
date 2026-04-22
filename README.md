@@ -46,6 +46,17 @@ The touchscreen displays:
 - **Mode Button** (Blue): Toggle between Fixed Power and PID modes
 - **Power +/- Buttons** (Cyan): Adjust target power
 - **RPM +/- Buttons** (Magenta): Adjust target RPM
+- **SLEEP Button** (Orange): Enter deep sleep mode to save battery
+
+### Power Management
+
+The device supports deep sleep mode for battery-powered operation:
+- **Deep Sleep**: Tap the SLEEP button (top right) to enter low-power sleep mode
+- **Wake Up**: Press the **BOOT button** (labeled BOOT on CYD) to wake the device
+- **Power Consumption**: 
+  - Active: ~100-200mA (display on)
+  - Deep Sleep: ~10-150μA (99.9% power savings)
+- **Motor Safety**: Motor automatically stops before entering sleep mode
 
 ## Pin Configuration
 

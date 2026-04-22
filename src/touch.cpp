@@ -1,6 +1,7 @@
 #include "touch.h"
 #include "motor_control.h"
 #include "pid_controller.h"
+#include "power_management.h"
 #include <SPI.h>
 
 // Touch pins are defined in platformio.ini
@@ -148,6 +149,12 @@ void handleTouch() {
                 if (g_state.config.targetRPM < 0.0f) {
                     g_state.config.targetRPM = 0.0f;
                 }
+                break;
+                
+            case BTN_SLEEP:
+                // Enter deep sleep mode
+                enterDeepSleep();
+                // This code won't be reached - device will sleep
                 break;
         }
         

@@ -23,6 +23,7 @@ enum ButtonID {
     BTN_POWER_DOWN,
     BTN_RPM_UP,
     BTN_RPM_DOWN,
+    BTN_SLEEP,
     BTN_COUNT
 };
 

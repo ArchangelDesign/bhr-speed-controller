@@ -11,6 +11,7 @@ Button g_buttons[BTN_COUNT] = {
     {90, 85, 70, 40, "-", TFT_CYAN},             // BTN_POWER_DOWN
     {170, 85, 70, 40, "+", TFT_MAGENTA},         // BTN_RPM_UP
     {250, 85, 60, 40, "-", TFT_MAGENTA},         // BTN_RPM_DOWN
+    {250, 5, 60, 25, "SLEEP", TFT_ORANGE},       // BTN_SLEEP
 };
 
 void setupDisplay() {
