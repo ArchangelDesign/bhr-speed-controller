@@ -2,6 +2,10 @@
 
 A motor speed controller firmware for ESP32-based CYD (Cheap Yellow Display) board. Controls a 12V DC motor with PWM output and optional RPM feedback for PID control.
 
+## Application
+
+![Application](doc/application.png)
+
 ## Hardware Requirements
 
 - **CYD Board**: ESP32-2432S028 (ESP32 with ST7789 240x320 TFT display and XPT2046 touchscreen)
