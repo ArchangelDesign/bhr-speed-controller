@@ -58,7 +58,7 @@ void setupMotorControl() {
     // Setup PWM on PID_OUTPUT pin
     ledcSetup(PWM_CHANNEL, PWM_FREQUENCY, PWM_RESOLUTION);
     ledcAttachPin(PID_OUTPUT, PWM_CHANNEL);
-    ledcWrite(PWM_CHANNEL, 0);  // Start with motor off
+    ledcWrite(PWM_CHANNEL, 255);  // Start with motor off (HIGH = OFF for inverted logic)
 }
 
 void setMotorPower(float powerPercent) {
@@ -67,7 +67,8 @@ void setMotorPower(float powerPercent) {
     if (powerPercent > 100.0f) powerPercent = 100.0f;
     
     // Convert percentage to PWM duty cycle (0-255 for 8-bit)
-    uint8_t dutyCycle = (uint8_t)((powerPercent / 100.0f) * 255.0f);
+    // Inverted logic: LOW = motor ON, HIGH = motor OFF
+    uint8_t dutyCycle = 255 - (uint8_t)((powerPercent / 100.0f) * 255.0f);
     ledcWrite(PWM_CHANNEL, dutyCycle);
     
     g_state.currentPower = powerPercent;

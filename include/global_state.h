@@ -13,7 +13,6 @@
 
 // PWM configuration
 #define PWM_CHANNEL 0
-#define PWM_FREQUENCY 500  // 500Hz PWM frequency
 #define PWM_RESOLUTION 8     // 8-bit resolution (0-255)
 
 // Control modes
