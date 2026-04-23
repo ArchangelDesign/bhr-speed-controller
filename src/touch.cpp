@@ -60,9 +60,6 @@ void handleTouch() {
     
     TS_Point p = ts.getPoint();
     
-    // Debug output (comment out after calibration)
-    Serial.printf("Touch raw: x=%d, y=%d, z=%d\n", p.x, p.y, p.z);
-    
     // Check for valid touch (z should be between reasonable pressure values)
     // Invalid readings typically have z at max value (4095) or x/y at max (8191)
     if (p.z < 200 || p.z > 4000 || p.x > 8000 || p.y > 8000) {
@@ -78,7 +75,6 @@ void handleTouch() {
     x = constrain(x, 0, 319);
     y = constrain(y, 0, 239);
     
-    Serial.printf("Touch mapped: x=%d, y=%d\n", x, y);
     
     // Debounce
     uint32_t now = millis();
@@ -90,76 +86,78 @@ void handleTouch() {
     // Check which button was pressed
     int buttonId = getTouchedButton(x, y);
     
-    if (buttonId >= 0) {
-        Serial.printf("Button pressed: %d (%s)\n", buttonId, g_buttons[buttonId].label);
-        
-        // Visual feedback
-        drawButton(g_buttons[buttonId], true);
-        delay(100);
-        
-        // Handle button press
-        switch (buttonId) {
-            case BTN_START_STOP:
-                if (g_state.motorState == MOTOR_STOPPED) {
-                    // Start motor
-                    g_state.motorState = MOTOR_STARTING;
-                    g_state.motorStartTime = millis();
-                    g_pidController.reset();
-                } else {
-                    // Stop motor
-                    stopMotor();
-                }
-                g_state.needsRedraw = true;
-                break;
-                
-            case BTN_MODE:
-                // Toggle mode
-                if (g_state.config.mode == MODE_FIXED_POWER) {
-                    g_state.config.mode = MODE_FIXED_SPEED;
-                } else {
-                    g_state.config.mode = MODE_FIXED_POWER;
-                }
-                g_pidController.reset();
-                g_state.needsRedraw = true;
-                break;
-                
-            case BTN_POWER_UP:
-                g_state.config.targetPower += 5.0f;
-                if (g_state.config.targetPower > 100.0f) {
-                    g_state.config.targetPower = 100.0f;
-                }
-                break;
-                
-            case BTN_POWER_DOWN:
-                g_state.config.targetPower -= 5.0f;
-                if (g_state.config.targetPower < 0.0f) {
-                    g_state.config.targetPower = 0.0f;
-                }
-                break;
-                
-            case BTN_RPM_UP:
-                g_state.config.targetRPM += 50.0f;
-                if (g_state.config.targetRPM > 5000.0f) {
-                    g_state.config.targetRPM = 5000.0f;
-                }
-                break;
-                
-            case BTN_RPM_DOWN:
-                g_state.config.targetRPM -= 50.0f;
-                if (g_state.config.targetRPM < 0.0f) {
-                    g_state.config.targetRPM = 0.0f;
-                }
-                break;
-                
-            case BTN_SLEEP:
-                // Enter deep sleep mode
-                enterDeepSleep();
-                // This code won't be reached - device will sleep
-                break;
-        }
-        
-        drawButton(g_buttons[buttonId], false);
-    } else {
+    if (buttonId < 0) {
         Serial.printf("Touch missed all buttons: x=%d, y=%d\n", x, y);
+        return;
     }
+
+    Serial.printf("Button pressed: %d (%s)\n", buttonId, g_buttons[buttonId].label);
+    
+    // Visual feedback
+    drawButton(g_buttons[buttonId], true);
+    delay(100);
+    
+    // Handle button press
+    switch (buttonId) {
+        case BTN_START_STOP:
+            if (g_state.motorState == MOTOR_STOPPED) {
+                // Start motor
+                g_state.motorState = MOTOR_STARTING;
+                g_state.motorStartTime = millis();
+                g_pidController.reset();
+            } else {
+                // Stop motor
+                stopMotor();
+            }
+            g_state.needsRedraw = true;
+            break;
+            
+        case BTN_MODE:
+            // Toggle mode
+            if (g_state.config.mode == MODE_FIXED_POWER) {
+                g_state.config.mode = MODE_FIXED_SPEED;
+            } else {
+                g_state.config.mode = MODE_FIXED_POWER;
+            }
+            g_pidController.reset();
+            g_state.needsRedraw = true;
+            break;
+            
+        case BTN_POWER_UP:
+            g_state.config.targetPower += CONTROL_RESOLUTION;
+            if (g_state.config.targetPower > 100.0f) {
+                g_state.config.targetPower = 100.0f;
+            }
+            break;
+            
+        case BTN_POWER_DOWN:
+            g_state.config.targetPower -= CONTROL_RESOLUTION;
+            if (g_state.config.targetPower < 0.0f) {
+                g_state.config.targetPower = 0.0f;
+            }
+            break;
+            
+        case BTN_RPM_UP:
+            g_state.config.targetRPM += 50.0f;
+            if (g_state.config.targetRPM > 5000.0f) {
+                g_state.config.targetRPM = 5000.0f;
+            }
+            break;
+            
+        case BTN_RPM_DOWN:
+            g_state.config.targetRPM -= 50.0f;
+            if (g_state.config.targetRPM < 0.0f) {
+                g_state.config.targetRPM = 0.0f;
+            }
+            break;
+            
+        case BTN_SLEEP:
+            // Enter deep sleep mode
+            enterDeepSleep();
+            // This code won't be reached - device will sleep
+            break;
+    }
+    
+    drawButton(g_buttons[buttonId], false);
+        
 }
