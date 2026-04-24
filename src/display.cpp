@@ -151,11 +151,11 @@ void drawStatus() {
     
     if (displayCache.lastProcessTimerSeconds != currentTimerSeconds) {
         // Position timer on the right side, top row (before sleep button)
-        tft.fillRect(200, 3, 48, 18, TFT_BLACK);  // Clear timer area
+        tft.fillRect(195, 3, 48, 18, TFT_BLACK);  // Clear timer area
         tft.setTextColor(TFT_YELLOW, TFT_BLACK);
         char timerStr[16];
         getProcessTimerString(timerStr, sizeof(timerStr));
-        tft.drawString(timerStr, 200, 3, 2);
+        tft.drawString(timerStr, 195, 3, 2);
         displayCache.lastProcessTimerSeconds = currentTimerSeconds;
     }
 }
