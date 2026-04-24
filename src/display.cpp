@@ -2,6 +2,18 @@
 
 TFT_eSPI tft = TFT_eSPI();
 
+// Track previous values to avoid unnecessary redraws
+struct DisplayCache {
+    ControlMode lastMode = MODE_FIXED_POWER;
+    MotorState lastMotorState = MOTOR_STOPPED;
+    float lastCurrentPower = -1.0f;
+    float lastCurrentRPM = -1.0f;
+    float lastTargetPower = -1.0f;
+    float lastTargetRPM = -1.0f;
+    bool lastRpmSensorEnabled = true;
+};
+static DisplayCache displayCache;
+
 // Define button layout for 320x240 screen (landscape)
 // Status area: 0-70, Button area: 70-240
 Button g_buttons[BTN_COUNT] = {
@@ -41,65 +53,106 @@ void drawButton(const Button& btn, bool pressed) {
 }
 
 void drawStatus() {
-    // Clear status area (reduced height)
-    tft.fillRect(0, 0, 320, 75, TFT_BLACK);
-    
     tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    
-    // Draw mode and state on one line
-    tft.drawString("Mode: ", 5, 3, 2);
-    if (g_state.config.mode == MODE_FIXED_POWER) {
-        tft.setTextColor(TFT_CYAN, TFT_BLACK);
-        tft.drawString("POWER", 60, 3, 2);
-    } else {
-        tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
-        tft.drawString("PID", 60, 3, 2);
-    }
-    
-    // Draw motor state
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString("|", 120, 3, 2);
-    if (g_state.motorState == MOTOR_STOPPED) {
-        tft.setTextColor(TFT_RED, TFT_BLACK);
-        tft.drawString("STOP", 135, 3, 2);
-    } else if (g_state.motorState == MOTOR_STARTING) {
-        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.drawString("START", 135, 3, 2);
-    } else {
-        tft.setTextColor(TFT_GREEN, TFT_BLACK);
-        tft.drawString("RUN", 135, 3, 2);
-    }
-    
-    // Draw current power and RPM
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     char buffer[32];
-    sprintf(buffer, "Power: %.1f%%", g_state.currentPower);
-    tft.drawString(buffer, 5, 23, 2);
     
-    // Draw current RPM
-    if (g_state.config.rpmSensorEnabled) {
-        sprintf(buffer, "RPM: %.0f", g_state.currentRPM);
-        tft.drawString(buffer, 170, 23, 2);
-    } else {
-        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-        tft.drawString("RPM: ---", 170, 23, 2);
+    // Update mode if changed (avoid sleep button area: x=250-310)
+    if (displayCache.lastMode != g_state.config.mode) {
+        tft.fillRect(5, 3, 110, 18, TFT_BLACK);  // Clear mode area only
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        tft.drawString("Mode: ", 5, 3, 2);
+        if (g_state.config.mode == MODE_FIXED_POWER) {
+            tft.setTextColor(TFT_CYAN, TFT_BLACK);
+            tft.drawString("POWER", 60, 3, 2);
+        } else {
+            tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
+            tft.drawString("PID", 60, 3, 2);
+        }
+        displayCache.lastMode = g_state.config.mode;
     }
     
-    // Draw target values
-    tft.setTextColor(TFT_CYAN, TFT_BLACK);
-    sprintf(buffer, "Target: %.0f%%", g_state.config.targetPower);
-    tft.drawString(buffer, 5, 48, 2);
+    // Update motor state if changed
+    if (displayCache.lastMotorState != g_state.motorState) {
+        tft.fillRect(120, 3, 80, 18, TFT_BLACK);  // Clear state area only
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        tft.drawString("|", 120, 3, 2);
+        if (g_state.motorState == MOTOR_STOPPED) {
+            tft.setTextColor(TFT_RED, TFT_BLACK);
+            tft.drawString("STOP", 135, 3, 2);
+        } else if (g_state.motorState == MOTOR_STARTING) {
+            tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+            tft.drawString("START", 135, 3, 2);
+        } else {
+            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+            tft.drawString("RUN", 135, 3, 2);
+        }
+        displayCache.lastMotorState = g_state.motorState;
+    }
     
+    // Update current power if changed
+    if (abs(displayCache.lastCurrentPower - g_state.currentPower) > 0.05f) {
+        tft.fillRect(5, 23, 155, 18, TFT_BLACK);  // Clear power area only
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);
+        sprintf(buffer, "Power: %.1f%%", g_state.currentPower);
+        tft.drawString(buffer, 5, 23, 2);
+        displayCache.lastCurrentPower = g_state.currentPower;
+    }
+    
+    // Update current RPM if changed or sensor state changed
+    bool rpmChanged = abs(displayCache.lastCurrentRPM - g_state.currentRPM) > 0.5f;
+    bool sensorStateChanged = displayCache.lastRpmSensorEnabled != g_state.config.rpmSensorEnabled;
+    if (rpmChanged || sensorStateChanged) {
+        tft.fillRect(170, 23, 145, 18, TFT_BLACK);  // Clear RPM area only
+        if (g_state.config.rpmSensorEnabled) {
+            tft.setTextColor(TFT_WHITE, TFT_BLACK);
+            sprintf(buffer, "RPM: %.0f", g_state.currentRPM);
+            tft.drawString(buffer, 170, 23, 2);
+        } else {
+            tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+            tft.drawString("RPM: ---", 170, 23, 2);
+        }
+        displayCache.lastCurrentRPM = g_state.currentRPM;
+        displayCache.lastRpmSensorEnabled = g_state.config.rpmSensorEnabled;
+    }
+    
+    // Update target power if changed
+    if (abs(displayCache.lastTargetPower - g_state.config.targetPower) > 0.05f) {
+        tft.fillRect(5, 48, 155, 18, TFT_BLACK);  // Clear target power area only
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        sprintf(buffer, "Target: %.0f%%", g_state.config.targetPower);
+        tft.drawString(buffer, 5, 48, 2);
+        displayCache.lastTargetPower = g_state.config.targetPower;
+    }
+    
+    // Update target RPM if changed and in PID mode
     if (g_state.config.mode == MODE_FIXED_SPEED) {
-        tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
-        sprintf(buffer, "%.0f RPM", g_state.config.targetRPM);
-        tft.drawString(buffer, 170, 48, 2);
+        if (abs(displayCache.lastTargetRPM - g_state.config.targetRPM) > 0.5f) {
+            tft.fillRect(170, 48, 145, 18, TFT_BLACK);  // Clear target RPM area only
+            tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
+            sprintf(buffer, "%.0f RPM", g_state.config.targetRPM);
+            tft.drawString(buffer, 170, 48, 2);
+            displayCache.lastTargetRPM = g_state.config.targetRPM;
+        }
+    } else {
+        // Clear target RPM area if mode switched from PID to Power
+        if (displayCache.lastTargetRPM >= 0) {
+            tft.fillRect(170, 48, 145, 18, TFT_BLACK);
+            displayCache.lastTargetRPM = -1.0f;
+        }
     }
 }
 
 void drawFullUI() {
     tft.fillScreen(TFT_BLACK);
+    
+    // Reset display cache to force full redraw
+    displayCache.lastMode = (ControlMode)!g_state.config.mode;
+    displayCache.lastMotorState = (MotorState)!g_state.motorState;
+    displayCache.lastCurrentPower = -1.0f;
+    displayCache.lastCurrentRPM = -1.0f;
+    displayCache.lastTargetPower = -1.0f;
+    displayCache.lastTargetRPM = -1.0f;
+    displayCache.lastRpmSensorEnabled = !g_state.config.rpmSensorEnabled;
     
     // Draw status area
     drawStatus();
