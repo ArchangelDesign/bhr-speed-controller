@@ -52,6 +52,11 @@ struct GlobalState {
     uint32_t lastUpdateTime; // millis() of last update
     Config config;
     
+    // Process timer state
+    uint32_t processTimerSeconds;       // Accumulated running time in seconds
+    uint32_t processTimerStartMillis;   // millis() when timer was last started
+    bool processTimerRunning;           // Is timer currently running
+    
     // UI state
     bool needsRedraw;
     uint32_t lastTouchTime;

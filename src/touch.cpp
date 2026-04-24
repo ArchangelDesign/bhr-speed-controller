@@ -1,7 +1,9 @@
 #include "touch.h"
+#include "display.h"
 #include "motor_control.h"
 #include "pid_controller.h"
 #include "power_management.h"
+#include "process_timer.h"
 #include <SPI.h>
 
 // Touch pins are defined in platformio.ini
@@ -105,6 +107,7 @@ void handleTouch() {
                 g_state.motorState = MOTOR_STARTING;
                 g_state.motorStartTime = millis();
                 g_pidController.reset();
+                startProcessTimer();
             } else {
                 // Stop motor
                 stopMotor();

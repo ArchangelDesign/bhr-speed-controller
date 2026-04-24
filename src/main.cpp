@@ -6,6 +6,7 @@
 #include "touch.h"
 #include "motor_control.h"
 #include "power_management.h"
+#include "process_timer.h"
 
 // Global state instance
 GlobalState g_state;
@@ -32,6 +33,10 @@ void setup() {
     
     // Initialize default configuration
     initDefaultConfig(g_state.config);
+    
+    // Initialize process timer
+    Serial.println("Initializing process timer...");
+    initProcessTimer();
     
     // Setup PID controller
     g_pidController.setTunings(g_state.config.pidKp, 
@@ -76,6 +81,9 @@ void loop() {
     
     // Handle touch input
     handleTouch();
+    
+    // Update process timer
+    updateProcessTimer();
     
     // Update motor control at high frequency
     if (now - lastMotorUpdate >= MOTOR_UPDATE_INTERVAL) {

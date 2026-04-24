@@ -1,4 +1,5 @@
 #include "display.h"
+#include "process_timer.h"
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -11,6 +12,7 @@ struct DisplayCache {
     float lastTargetPower = -1.0f;
     float lastTargetRPM = -1.0f;
     bool lastRpmSensorEnabled = true;
+    uint32_t lastProcessTimerSeconds = 0;
 };
 static DisplayCache displayCache;
 
@@ -140,6 +142,22 @@ void drawStatus() {
             displayCache.lastTargetRPM = -1.0f;
         }
     }
+    
+    // Update process timer (always update when running, or when changed)
+    uint32_t currentTimerSeconds = g_state.processTimerSeconds;
+    if (g_state.processTimerRunning) {
+        currentTimerSeconds += (millis() - g_state.processTimerStartMillis) / 1000;
+    }
+    
+    if (displayCache.lastProcessTimerSeconds != currentTimerSeconds) {
+        // Position timer on the right side, top row (before sleep button)
+        tft.fillRect(200, 3, 48, 18, TFT_BLACK);  // Clear timer area
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        char timerStr[16];
+        getProcessTimerString(timerStr, sizeof(timerStr));
+        tft.drawString(timerStr, 200, 3, 2);
+        displayCache.lastProcessTimerSeconds = currentTimerSeconds;
+    }
 }
 
 void drawFullUI() {
@@ -153,6 +171,7 @@ void drawFullUI() {
     displayCache.lastTargetPower = -1.0f;
     displayCache.lastTargetRPM = -1.0f;
     displayCache.lastRpmSensorEnabled = !g_state.config.rpmSensorEnabled;
+    displayCache.lastProcessTimerSeconds = 0xFFFFFFFF;  // Force timer redraw
     
     // Draw status area
     drawStatus();

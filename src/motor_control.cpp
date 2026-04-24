@@ -1,5 +1,6 @@
 #include "motor_control.h"
 #include "pid_controller.h"
+#include "process_timer.h"
 
 // RPM measurement variables
 volatile uint32_t rpmPulseCount = 0;
@@ -89,6 +90,7 @@ void setMotorPower(float powerPercent) {
 void stopMotor() {
     setMotorPower(0.0f);
     g_state.motorState = MOTOR_STOPPED;
+    pauseProcessTimer();
 }
 
 void updateMotorControl() {
