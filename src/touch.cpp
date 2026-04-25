@@ -108,10 +108,11 @@ void handleTouch() {
                 g_state.motorStartTime = millis();
                 g_pidController.reset();
                 startProcessTimer();
-            } else {
-                // Stop motor
+            } else if (g_state.motorState == MOTOR_RUNNING || g_state.motorState == MOTOR_STARTING) {
+                // Stop motor (initiates soft stop if configured)
                 stopMotor();
             }
+            // If MOTOR_STOPPING, ignore button press until fully stopped
             g_state.needsRedraw = true;
             break;
             

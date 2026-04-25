@@ -84,6 +84,9 @@ void drawStatus() {
         } else if (g_state.motorState == MOTOR_STARTING) {
             tft.setTextColor(TFT_YELLOW, TFT_BLACK);
             tft.drawString("START", 135, 3, 2);
+        } else if (g_state.motorState == MOTOR_STOPPING) {
+            tft.setTextColor(TFT_ORANGE, TFT_BLACK);
+            tft.drawString("STOP", 135, 3, 2);
         } else {
             tft.setTextColor(TFT_GREEN, TFT_BLACK);
             tft.drawString("RUN", 135, 3, 2);

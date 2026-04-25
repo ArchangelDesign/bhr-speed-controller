@@ -25,7 +25,8 @@ enum ControlMode {
 enum MotorState {
     MOTOR_STOPPED,
     MOTOR_STARTING,  // Soft start phase
-    MOTOR_RUNNING
+    MOTOR_RUNNING,
+    MOTOR_STOPPING   // Soft stop phase
 };
 
 // Global configuration structure
@@ -35,6 +36,7 @@ struct Config {
     float targetRPM;        // Target RPM for PID mode
     uint16_t timeoutMinutes; // Timeout in minutes (0 = no timeout)
     uint16_t softStartSeconds; // Soft start duration in seconds
+    uint16_t softStopSeconds;  // Soft stop duration in seconds
     bool rpmSensorEnabled;   // Whether RPM sensor is connected
     
     // PID parameters
@@ -49,6 +51,7 @@ struct GlobalState {
     float currentPower;     // Current power output (0-100%)
     float currentRPM;       // Current measured RPM
     uint32_t motorStartTime; // millis() when motor started
+    uint32_t motorStopTime;  // millis() when motor stopping started
     uint32_t lastUpdateTime; // millis() of last update
     Config config;
     
@@ -72,6 +75,7 @@ inline void initDefaultConfig(Config& cfg) {
     cfg.targetRPM = 1000.0f;
     cfg.timeoutMinutes = 0;
     cfg.softStartSeconds = 5;
+    cfg.softStopSeconds = 5;
     cfg.rpmSensorEnabled = true;
     cfg.pidKp = 0.5f;
     cfg.pidKi = 0.1f;

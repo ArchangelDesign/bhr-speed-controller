@@ -27,6 +27,7 @@ void setup() {
     g_state.currentPower = 0.0f;
     g_state.currentRPM = 0.0f;
     g_state.motorStartTime = 0;
+    g_state.motorStopTime = 0;
     g_state.lastUpdateTime = millis();
     g_state.needsRedraw = true;
     g_state.lastTouchTime = 0;

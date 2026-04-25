@@ -88,9 +88,17 @@ void setMotorPower(float powerPercent) {
 }
 
 void stopMotor() {
-    setMotorPower(0.0f);
-    g_state.motorState = MOTOR_STOPPED;
-    pauseProcessTimer();
+    if (g_state.config.softStopSeconds > 0 && 
+        (g_state.motorState == MOTOR_RUNNING || g_state.motorState == MOTOR_STARTING)) {
+        // Initiate soft stop
+        g_state.motorState = MOTOR_STOPPING;
+        g_state.motorStopTime = millis();
+    } else {
+        // Immediate stop
+        setMotorPower(0.0f);
+        g_state.motorState = MOTOR_STOPPED;
+        pauseProcessTimer();
+    }
 }
 
 void updateMotorControl() {
@@ -137,6 +145,39 @@ void updateMotorControl() {
             // No soft start, go directly to running
             g_state.motorState = MOTOR_RUNNING;
         }
+    }
+    
+    // Handle soft stop
+    if (g_state.motorState == MOTOR_STOPPING) {
+        uint32_t stoppingTime = now - g_state.motorStopTime;
+        float softStopProgress = stoppingTime / (g_state.config.softStopSeconds * 1000.0f);
+        
+        if (softStopProgress >= 1.0f) {
+            // Stopping complete
+            setMotorPower(0.0f);
+            g_state.motorState = MOTOR_STOPPED;
+            pauseProcessTimer();
+            return;
+        }
+        
+        // Ramp down from current power to zero
+        // softStopProgress goes from 0 to 1, so remaining power is (1 - progress)
+        float remainingPowerFactor = 1.0f - softStopProgress;
+        
+        // Calculate what the target power would be if we were running
+        float fullPower = 0.0f;
+        if (g_state.config.mode == MODE_FIXED_POWER) {
+            fullPower = g_state.config.targetPower;
+        } else {
+            // In PID mode, continue to use PID but scale it down
+            if (g_state.config.rpmSensorEnabled) {
+                fullPower = g_pidController.compute(g_state.config.targetRPM, g_state.currentRPM);
+            } else {
+                fullPower = g_state.config.targetPower;
+            }
+        }
+        
+        targetPower = fullPower * remainingPowerFactor;
     }
     
     // Handle normal running
