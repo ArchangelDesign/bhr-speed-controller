@@ -11,8 +11,8 @@
     #include "display.h"
     #include "touch.h"
     #include "power_management.h"
-    #include "process_timer.h"
 #endif
+    #include "process_timer.h"
 
 // Global state instance
 GlobalState g_state;
