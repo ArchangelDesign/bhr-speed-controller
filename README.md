@@ -1,17 +1,41 @@
 # BHR Speed Controller
 
-A motor speed controller firmware for ESP32-based CYD (Cheap Yellow Display) board. Controls a 12V DC motor with PWM output and optional RPM feedback for PID control.
+A motor speed controller firmware supporting multiple hardware platforms. Controls a 12V DC motor with PWM output and optional RPM feedback for PID control.
 
-## Application
+## Build Variants
 
-![Application](doc/application.png)
+The project supports two build configurations:
+
+### 1. ESP32 with Touch Display (bhrsc-ST7789-E)
+- Full-featured version with TFT display and touchscreen interface
+- Deep sleep power management
+- Visual feedback and intuitive touch controls
+
+### 2. Arduino Nano AVR (nano-avr)
+- Minimal version with 3-button interface
+- No display or touch interface
+- Serial monitor for feedback
+- Lower cost and smaller footprint
 
 ## Hardware Requirements
+
+### ESP32 Variant (bhrsc-ST7789-E)
 
 - **CYD Board**: ESP32-2432S028 (ESP32 with ST7789 240x320 TFT display and XPT2046 touchscreen)
 - **Motor**: 12V DC motor
 - **Driver**: MOSFET or motor driver connected to GPIO 18 (PID_OUTPUT)
 - **RPM Sensor** (optional): Connected to GPIO 27 (RPM_INPUT)
+
+### Arduino Nano AVR Variant (nano-avr)
+
+- **Board**: Arduino Nano (ATmega328P)
+- **Motor**: 12V DC motor
+- **Driver**: MOSFET or motor driver connected to Pin 9 (PWM_OUTPUT_PIN)
+- **RPM Sensor** (optional): Connected to Pin 2 (RPM_INPUT)
+- **Buttons**:
+  - Pin 3: START/STOP button (with pull-up resistor)
+  - Pin 4: SPEED UP button (with pull-up resistor)
+  - Pin 5: SPEED DOWN button (with pull-up resistor)
 
 ## Features
 
@@ -44,13 +68,25 @@ The touchscreen displays:
 - **Target Power**: Desired power level
 - **Target RPM**: Desired speed (in PID mode)
 
-### Touch Controls
+### Touch Controls (ESP32 Variant)
 
 - **START/STOP Button** (Green/Red): Start or stop the motor
 - **Mode Button** (Blue): Toggle between Fixed Power and PID modes
 - **Power +/- Buttons** (Cyan): Adjust target power
 - **RPM +/- Buttons** (Magenta): Adjust target RPM
 - **SLEEP Button** (Orange): Enter deep sleep mode to save battery
+
+### Button Controls (Arduino Nano AVR Variant)
+
+- **Pin 3 (START/STOP)**: Toggle motor on/off
+- **Pin 4 (SPEED UP)**: 
+  - Single press: Increase target by 5% (Fixed Power) or 100 RPM (PID mode)
+  - Hold: Auto-repeat every 200ms
+- **Pin 5 (SPEED DOWN)**: 
+  - Single press: Decrease target by 5% (Fixed Power) or 100 RPM (PID mode)
+  - Hold: Auto-repeat every 200ms
+
+**Note**: Buttons should be wired with pull-up resistors (internal pull-ups are enabled). Press = connect to GND.
 
 ### Power Management
 
@@ -77,9 +113,25 @@ Display and touch pins are pre-configured for CYD hardware.
 
 1. Install [PlatformIO](https://platformio.org/)
 2. Open project folder in VS Code with PlatformIO extension
-3. Build: `pio run`
-4. Upload: `pio run --target upload`
-5. Monitor serial output: `pio device monitor`
+
+### Build ESP32 Variant
+```bash
+pio run -e bhrsc-ST7789-E
+pio run -e bhrsc-ST7789-E --target upload
+```
+
+### Build Arduino Nano AVR Variant
+```bash
+pio run -e nano-avr
+pio run -e nano-avr --target upload
+```
+
+### Monitor Serial Output
+```bash
+pio device monitor
+```
+
+Or use the PlatformIO toolbar buttons in VS Code to select the environment and upload.
 
 ## Usage
 
@@ -135,18 +187,22 @@ Adjust these values based on your motor characteristics:
 
 ```
 include/
-  ├── global_state.h     # State management and configuration
-  ├── pid_controller.h   # PID controller interface
-  ├── display.h          # Display and UI functions
-  ├── touch.h            # Touch input handling
-  └── motor_control.h    # Motor PWM and RPM measurement
+  ├── global_state.h       # State management and configuration
+  ├── pid_controller.h     # PID controller interface
+  ├── display.h            # Display and UI functions (ESP32 only)
+  ├── touch.h              # Touch input handling (ESP32 only)
+  ├── buttons.h            # Button input handling (Arduino Nano only)
+  ├── power_management.h   # Deep sleep functions (ESP32 only)
+  └── motor_control.h      # Motor PWM and RPM measurement
 
 src/
-  ├── main.cpp           # Main program logic
-  ├── pid_controller.cpp # PID implementation
-  ├── display.cpp        # TFT display rendering
-  ├── touch.cpp          # Touch event processing
-  └── motor_control.cpp  # Motor control and RPM sensing
+  ├── main.cpp             # Main program logic (multi-platform)
+  ├── pid_controller.cpp   # PID implementation
+  ├── display.cpp          # TFT display rendering (ESP32 only)
+  ├── touch.cpp            # Touch event processing (ESP32 only)
+  ├── buttons.cpp          # Button event processing (Arduino Nano only)
+  ├── power_management.cpp # Power management (ESP32 only)
+  └── motor_control.cpp    # Motor control and RPM sensing (multi-platform)
 ```
 
 ## Safety Notes

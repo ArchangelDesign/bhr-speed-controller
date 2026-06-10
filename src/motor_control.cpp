@@ -8,7 +8,11 @@ uint32_t lastRpmCalculationTime = 0;
 float measuredRPM = 0.0f;
 
 // RPM sensor interrupt handler
+#ifdef ARDUINO_NANO_AVR
+void rpmPulseISR() {
+#else
 void IRAM_ATTR rpmPulseISR() {
+#endif
     rpmPulseCount++;
     lastRpmPulseTime = micros();
 }
@@ -55,13 +59,26 @@ float getCurrentRPM() {
 }
 
 void setupMotorControl() {
-    // Setup PWM on PID_OUTPUT pin
+#ifdef ARDUINO_NANO_AVR
+    // Arduino Nano: Use standard PWM on pin 9 (Timer1)
+    #ifndef PWM_OUTPUT_PIN
+    #define PWM_OUTPUT_PIN 9
+    #endif
+    pinMode(PWM_OUTPUT_PIN, OUTPUT);
+    #if INVERSE_OUTPUT == 1
+    analogWrite(PWM_OUTPUT_PIN, 255);  // Start with motor off (inverted)
+    #else
+    analogWrite(PWM_OUTPUT_PIN, 0);    // Start with motor off (normal)
+    #endif
+#else
+    // ESP32: Setup PWM using LEDC
     ledcSetup(PWM_CHANNEL, PWM_FREQUENCY, PWM_RESOLUTION);
     ledcAttachPin(PID_OUTPUT, PWM_CHANNEL);
-#if INVERSE_OUTPUT == 1
+    #if INVERSE_OUTPUT == 1
     ledcWrite(PWM_CHANNEL, 255);  // Start with motor off (inverted: HIGH = OFF)
-#else
+    #else
     ledcWrite(PWM_CHANNEL, 0);    // Start with motor off (normal: LOW = OFF)
+    #endif
 #endif
 }
 
@@ -81,7 +98,16 @@ void setMotorPower(float powerPercent) {
     uint8_t dutyCycle = pwmValue;
 #endif
     
+#ifdef ARDUINO_NANO_AVR
+    // Arduino Nano: Use analogWrite
+    #ifndef PWM_OUTPUT_PIN
+    #define PWM_OUTPUT_PIN 9
+    #endif
+    analogWrite(PWM_OUTPUT_PIN, dutyCycle);
+#else
+    // ESP32: Use LEDC
     ledcWrite(PWM_CHANNEL, dutyCycle);
+#endif
     
     g_state.currentPower = powerPercent;
 }

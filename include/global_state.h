@@ -63,7 +63,7 @@ extern GlobalState g_state;
 // Default configuration
 inline void initDefaultConfig(Config& cfg) {
     cfg.mode = MODE_FIXED_POWER;
-    cfg.targetPower = 50.0f;
+    cfg.targetPower = 19.0f;
     cfg.targetRPM = 1000.0f;
     cfg.timeoutMinutes = 0;
     cfg.softStartSeconds = 5;
