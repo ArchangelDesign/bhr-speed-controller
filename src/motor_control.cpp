@@ -61,16 +61,46 @@ float getCurrentRPM() {
 
 void setupMotorControl() {
 #ifdef ARDUINO_NANO_AVR
-    // Arduino Nano: Use standard PWM on pin 9 (Timer1)
+    // Arduino Nano: Configure Timer1 for ~15kHz PWM on pin 9 (OC1A)
     #ifndef PWM_OUTPUT_PIN
     #define PWM_OUTPUT_PIN 9
     #endif
     pinMode(PWM_OUTPUT_PIN, OUTPUT);
+    
+    // Configure Timer1 for Fast PWM mode with ICR1 as TOP
+    // Frequency = F_CPU / (prescaler * (1 + TOP))
+    // For 15kHz: TOP = (16MHz / 15kHz) - 1 = 1066
+    // Actual frequency: 16MHz / 1067 = 14.994 kHz
+    
+    TCCR1A = 0;  // Clear Timer1 control registers
+    TCCR1B = 0;
+    TCNT1 = 0;   // Clear Timer1 counter
+    
+    // Set Fast PWM mode with ICR1 as TOP (mode 14)
+    // WGM13:0 = 1110
+    TCCR1A |= (1 << WGM11);
+    TCCR1B |= (1 << WGM13) | (1 << WGM12);
+    
+    // Set prescaler to 1 (no prescaling) - CS12:0 = 001
+    TCCR1B |= (1 << CS10);
+    
+    // Set TOP value for ~15kHz
+    ICR1 = 1066;
+    
+    // Configure OC1A (pin 9) for non-inverted or inverted PWM output
     #if INVERSE_OUTPUT == 1
-    analogWrite(PWM_OUTPUT_PIN, 255);  // Start with motor off (inverted)
+    // Inverted: Clear OC1A on compare match, set at TOP
+    TCCR1A |= (1 << COM1A1) | (1 << COM1A0);
+    OCR1A = ICR1;  // Start with motor off (inverted: HIGH = OFF)
     #else
-    analogWrite(PWM_OUTPUT_PIN, 0);    // Start with motor off (normal)
+    // Non-inverted: Set OC1A on compare match, clear at TOP
+    TCCR1A |= (1 << COM1A1);
+    OCR1A = 0;     // Start with motor off (normal: LOW = OFF)
     #endif
+    
+    Serial.print("Timer1 configured for PWM: ");
+    Serial.print(16000000.0 / (ICR1 + 1), 0);
+    Serial.println(" Hz");
 #else
     // ESP32: Setup PWM using LEDC
     ledcSetup(PWM_CHANNEL, PWM_FREQUENCY, PWM_RESOLUTION);
@@ -88,24 +118,29 @@ void setMotorPower(float powerPercent) {
     if (powerPercent < 0.0f) powerPercent = 0.0f;
     if (powerPercent > 100.0f) powerPercent = 100.0f;
     
-    // Convert percentage to PWM duty cycle (0-255 for 8-bit)
+#ifdef ARDUINO_NANO_AVR
+    // Arduino Nano: Use Timer1 OCR1A register (10-bit resolution with ICR1=1066)
+    uint16_t pwmValue = (uint16_t)((powerPercent / 100.0f) * ICR1);
+    
+    #if INVERSE_OUTPUT == 1
+    // Inverted logic: LOW = motor ON, HIGH = motor OFF
+    OCR1A = ICR1 - pwmValue;
+    #else
+    // Normal logic: HIGH = motor ON, LOW = motor OFF
+    OCR1A = pwmValue;
+    #endif
+#else
+    // ESP32: Convert percentage to PWM duty cycle (0-255 for 8-bit)
     uint8_t pwmValue = (uint8_t)((powerPercent / 100.0f) * 255.0f);
     
-#if INVERSE_OUTPUT == 1
+    #if INVERSE_OUTPUT == 1
     // Inverted logic: LOW = motor ON, HIGH = motor OFF
     uint8_t dutyCycle = 255 - pwmValue;
-#else
+    #else
     // Normal logic: HIGH = motor ON, LOW = motor OFF
     uint8_t dutyCycle = pwmValue;
-#endif
-    
-#ifdef ARDUINO_NANO_AVR
-    // Arduino Nano: Use analogWrite
-    #ifndef PWM_OUTPUT_PIN
-    #define PWM_OUTPUT_PIN 9
     #endif
-    analogWrite(PWM_OUTPUT_PIN, dutyCycle);
-#else
+    
     // ESP32: Use LEDC
     ledcWrite(PWM_CHANNEL, dutyCycle);
 #endif
