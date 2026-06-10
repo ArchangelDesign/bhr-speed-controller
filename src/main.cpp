@@ -11,6 +11,7 @@
     #include "display.h"
     #include "touch.h"
     #include "power_management.h"
+    #include "process_timer.h"
 #endif
 
 // Global state instance
@@ -39,6 +40,7 @@ void setup() {
     g_state.currentPower = 0.0f;
     g_state.currentRPM = 0.0f;
     g_state.motorStartTime = 0;
+    g_state.motorStopTime = 0;
     g_state.lastUpdateTime = millis();
     
 #ifndef ARDUINO_NANO_AVR
@@ -48,6 +50,10 @@ void setup() {
     
     // Initialize default configuration
     initDefaultConfig(g_state.config);
+    
+    // Initialize process timer
+    Serial.println("Initializing process timer...");
+    initProcessTimer();
     
     // Setup PID controller
     g_pidController.setTunings(g_state.config.pidKp, 
@@ -116,6 +122,9 @@ void loop() {
 #else
     // ESP32: Handle touch input and display updates
     handleTouch();
+    
+    // Update process timer
+    updateProcessTimer();
     
     // Update motor control at high frequency
     if (now - lastMotorUpdate >= MOTOR_UPDATE_INTERVAL) {

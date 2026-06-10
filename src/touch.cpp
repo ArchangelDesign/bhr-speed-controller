@@ -1,7 +1,9 @@
 #include "touch.h"
+#include "display.h"
 #include "motor_control.h"
 #include "pid_controller.h"
 #include "power_management.h"
+#include "process_timer.h"
 #include <SPI.h>
 
 // Touch pins are defined in platformio.ini
@@ -105,10 +107,12 @@ void handleTouch() {
                 g_state.motorState = MOTOR_STARTING;
                 g_state.motorStartTime = millis();
                 g_pidController.reset();
-            } else {
-                // Stop motor
+                startProcessTimer();
+            } else if (g_state.motorState == MOTOR_RUNNING || g_state.motorState == MOTOR_STARTING) {
+                // Stop motor (initiates soft stop if configured)
                 stopMotor();
             }
+            // If MOTOR_STOPPING, ignore button press until fully stopped
             g_state.needsRedraw = true;
             break;
             
@@ -124,28 +128,28 @@ void handleTouch() {
             break;
             
         case BTN_POWER_UP:
-            g_state.config.targetPower += CONTROL_RESOLUTION;
+            g_state.config.targetPower += POWER_STEP;
             if (g_state.config.targetPower > 100.0f) {
                 g_state.config.targetPower = 100.0f;
             }
             break;
             
         case BTN_POWER_DOWN:
-            g_state.config.targetPower -= CONTROL_RESOLUTION;
+            g_state.config.targetPower -= POWER_STEP;
             if (g_state.config.targetPower < 0.0f) {
                 g_state.config.targetPower = 0.0f;
             }
             break;
             
         case BTN_RPM_UP:
-            g_state.config.targetRPM += 50.0f;
-            if (g_state.config.targetRPM > 5000.0f) {
-                g_state.config.targetRPM = 5000.0f;
+            g_state.config.targetRPM += RPM_STEP;
+            if (g_state.config.targetRPM > MAX_RPM) {
+                g_state.config.targetRPM = MAX_RPM;
             }
             break;
             
         case BTN_RPM_DOWN:
-            g_state.config.targetRPM -= 50.0f;
+            g_state.config.targetRPM -= RPM_STEP;
             if (g_state.config.targetRPM < 0.0f) {
                 g_state.config.targetRPM = 0.0f;
             }
